@@ -56,7 +56,7 @@
 
 ## 🔬 Technical Capabilities
 
-### Zig Compute Library (`libmathcore.so`)
+### Zig Compute Library
 
 **Number Theory**
 - `fibonacci(n)` — O(n) iterative Fibonacci with 64-bit overflow protection
@@ -89,14 +89,14 @@ POST /api/hash                 # Hash arbitrary text
 POST /api/benchmark            # Performance testing
 ```
 
-#### Julia Analytics `:8083/julia/*`
+#### Julia Analytics `:8080/julia/*`
 ```http
 POST /julia/api/stats          # Statistical distribution analysis
 GET  /julia/api/fibonacci/:n   # Fibonacci with golden ratio convergence
 POST /julia/api/primes/analyze # Prime density and gap analysis
 ```
 
-#### LuaJIT Scripting `:8082/lua/*`
+#### LuaJIT Scripting `:8080/lua/*`
 ```http
 GET  /lua/health               # Service health check
 GET  /lua/benchmark            # Zig kernel benchmark via JIT FFI
