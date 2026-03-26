@@ -1,0 +1,161 @@
+name: Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Zig
+      uses: goto-bus-stop/setup-zig@v2
+      with:
+        version: 0.11.0
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+    
+    - name: Build Zig Library
+      run: |
+        cd compute
+        chmod +x build.sh
+        ./build.sh
+        ls -lh libmathcore.so
+    
+    - name: Test Python Service (Local)
+      run: |
+        cd services/python
+        cp ../../compute/libmathcore.so .
+        pip install -r requirements.txt
+        python -c "import ctypes; lib = ctypes.CDLL('./libmathcore.so'); print('Zig lib loaded:', lib.fibonacci(10))"
+    
+    - name: Test Go Gateway (Build)
+      run: |
+        cd services/go
+        go build -o gateway main.go
+        ls -lh gateway
+
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Zig
+      uses: goto-bus-stop/setup-zig@v2
+      with:
+        version: 0.11.0
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+    
+    - name: Build Zig Library
+      run: |
+        cd compute
+        chmod +x build.sh
+        ./build.sh
+        cp libmathcore.so ../services/python/
+        cp libmathcore.so ../services/julia/
+        cp libmathcore.so ../services/luajit/
+    
+    - name: Deploy Python Service
+      run: |
+        cd services/python
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/python-compute
+        gcloud run deploy python-compute \
+          --image gcr.io/$PROJECT_ID/python-compute \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory 1Gi \
+          --port 8080
+    
+    - name: Deploy Julia Service
+      run: |
+        cd services/julia
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/julia-analytics
+        gcloud run deploy julia-analytics \
+          --image gcr.io/$PROJECT_ID/julia-analytics \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory 2Gi \
+          --timeout 300 \
+          --port 8080
+    
+    - name: Deploy LuaJIT Service
+      run: |
+        cd services/luajit
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/luajit-scripting
+        gcloud run deploy luajit-scripting \
+          --image gcr.io/$PROJECT_ID/luajit-scripting \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory 512Mi \
+          --port 8080
+    
+    - name: Deploy Go Gateway
+      run: |
+        PYTHON_URL=$(gcloud run services describe python-compute --region $REGION --format 'value(status.url)')
+        JULIA_URL=$(gcloud run services describe julia-analytics --region $REGION --format 'value(status.url)')
+        LUA_URL=$(gcloud run services describe luajit-scripting --region $REGION --format 'value(status.url)')
+        
+        cd services/go
+        touch go.sum
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/go-gateway
+        gcloud run deploy go-gateway \
+          --image gcr.io/$PROJECT_ID/go-gateway \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --set-env-vars PYTHON_SERVICE_URL=$PYTHON_URL,JULIA_SERVICE_URL=$JULIA_URL,LUA_SERVICE_URL=$LUA_URL \
+          --memory 512Mi \
+          --port 8080
+    
+    - name: Test Deployment
+      run: |
+        GATEWAY_URL=$(gcloud run services describe go-gateway --region $REGION --format 'value(status.url)')
+        echo "Gateway deployed at: $GATEWAY_URL"
+        
+        # Wait for service to be ready
+        sleep 10
+        
+        # Test health endpoint
+        curl -f $GATEWAY_URL/health || exit 1
+        
+        # Test Fibonacci
+        curl -f $GATEWAY_URL/api/fibonacci/10 || exit 1
+        
+        echo "✅ Deployment successful and tested!"
