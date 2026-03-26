@@ -1,70 +1,33 @@
 package main
+import ("encoding/json"; "io"; "log"; "net/http"; "os")
 
-import (
-	"encoding/json"
-	"io"
-	"log"
-	"net/http"
-	"os"
-)
+var pythonURL = os.Getenv("PYTHON_SERVICE_URL")
+var juliaURL = os.Getenv("JULIA_SERVICE_URL")
+var luaURL = os.Getenv("LUA_SERVICE_URL")
 
-var pythonServiceURL = getEnv("PYTHON_SERVICE_URL", "http://localhost:8080")
-
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
-}
-
-func proxyToPython(w http.ResponseWriter, r *http.Request) {
-	targetURL := pythonServiceURL + r.URL.Path
-	proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	proxyReq.Header = r.Header
-	client := &http.Client{}
-	resp, err := client.Do(proxyReq)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
-}
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get(pythonServiceURL + "/health")
-	pythonHealthy := err == nil && resp.StatusCode == 200
-	status := map[string]interface{}{
-		"service": "go-gateway",
-		"status":  "healthy",
-		"backend": map[string]bool{"python": pythonHealthy},
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
-}
-
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{
-		"service":   "Polyglot Cloud Gateway",
-		"stack":     "Go → Python → Zig",
-		"endpoints": "/api/fibonacci/:n, /api/primes (POST)",
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+func proxy(target string) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        req, _ := http.NewRequest(r.Method, target+r.URL.Path, r.Body)
+        req.Header = r.Header
+        resp, err := http.DefaultClient.Do(req)
+        if err != nil { http.Error(w, err.Error(), 502); return }
+        defer resp.Body.Close()
+        w.WriteHeader(resp.StatusCode)
+        io.Copy(w, resp.Body)
+    }
 }
 
 func main() {
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/api/", proxyToPython)
-	port := getEnv("PORT", "8000")
-	log.Printf("Go Gateway starting on port %s", port)
-	log.Printf("Proxying to Python service at %s", pythonServiceURL)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+    http.HandleFunc("/api/", proxy(pythonURL))
+    http.HandleFunc("/julia/", proxy(juliaURL))
+    http.HandleFunc("/lua/", proxy(luaURL))
+    http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+    })
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8000"
+    }
+    log.Printf("Starting server on port %s", port)
+    log.Fatal(http.ListenAndServe(":"+port, nil))
 }

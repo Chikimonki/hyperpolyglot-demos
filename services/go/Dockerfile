@@ -16,5 +16,5 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=builder /app/gateway .
 
-EXPOSE 8000
+EXPOSE 8080
 CMD ["./gateway"]
