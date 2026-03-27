@@ -18,3 +18,5 @@ Distributed consensus system demonstrating:
 
 ```bash
 ./run_cluster.sh
+## Distributed Systems
+- [PolyRaft](https://github.com/Chikimonki/polyraft-distributed) - Distributed consensus
