@@ -5,6 +5,7 @@ import (
     "fmt"
     "log"
     "net/http"
+    "os"
     "sync"
     "time"
 )
@@ -69,6 +70,7 @@ func (c *Cluster) GetStatus() map[string]interface{} {
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
     var req struct {
         ID      string
         Address string
@@ -80,6 +82,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleHeartbeat(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
     var req struct {
         ID string
     }
@@ -105,9 +108,14 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "5000"
+    }
+    
     fmt.Println("═══════════════════════════════════════")
     fmt.Println("  PolyRaft Go Coordinator")
-    fmt.Println("  Port: 5000")
+    fmt.Printf("  Port: %s\n", port)
     fmt.Println("═══════════════════════════════════════")
     
     http.HandleFunc("/register", handleRegister)
@@ -115,8 +123,8 @@ func main() {
     http.HandleFunc("/status", handleStatus)
     http.HandleFunc("/health", handleHealth)
     
-    cluster.RegisterNode("go_coordinator", "localhost:5000")
+    cluster.RegisterNode("go_coordinator", "localhost:"+port)
     
     fmt.Println("\nGo coordinator ready!")
-    log.Fatal(http.ListenAndServe(":5000", nil))
+    log.Fatal(http.ListenAndServe(":"+port, nil))
 }
