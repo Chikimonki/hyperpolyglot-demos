@@ -1,0 +1,8 @@
+*.so
+*.o
+go.sum
+Manifest.toml
+__pycache__/
+*.pyc
+.venv/
+*.log

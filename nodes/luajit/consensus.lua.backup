@@ -1,0 +1,163 @@
+-- PolyRaft LuaJIT Consensus Protocol
+-- Implements simplified Raft leader election
+
+local socket = require("socket")
+local json = require("cjson")
+
+-- Configuration (hot-swappable!)
+local config = {
+    node_id = "luajit_consensus",
+    port = 5003,
+    coordinator_url = "http://localhost:5000",
+    heartbeat_interval = 0.1,  -- 100ms
+    election_timeout_min = 0.3,  -- 300ms
+    election_timeout_max = 0.5,  -- 500ms
+}
+
+-- Node state
+local state = {
+    current_state = "follower",  -- follower, candidate, leader
+    current_term = 0,
+    voted_for = nil,
+    leader_id = nil,
+    last_heartbeat = socket.gettime(),
+    votes_received = 0,
+}
+
+-- Get random election timeout
+local function get_election_timeout()
+    return config.election_timeout_min + 
+           (config.election_timeout_max - config.election_timeout_min) * math.random()
+end
+
+-- State machine transitions
+local function become_follower(term)
+    print(string.format("[Term %d] Becoming FOLLOWER", term))
+    state.current_state = "follower"
+    state.current_term = term
+    state.voted_for = nil
+    state.votes_received = 0
+end
+
+local function become_candidate()
+    state.current_term = state.current_term + 1
+    print(string.format("[Term %d] Becoming CANDIDATE", state.current_term))
+    state.current_state = "candidate"
+    state.voted_for = config.node_id
+    state.votes_received = 1  -- Vote for self
+end
+
+local function become_leader()
+    print(string.format("[Term %d] Becoming LEADER! 🎉", state.current_term))
+    state.current_state = "leader"
+    state.leader_id = config.node_id
+end
+
+-- Election logic
+local function check_election_timeout()
+    local now = socket.gettime()
+    local timeout = get_election_timeout()
+    
+    if state.current_state ~= "leader" and 
+       (now - state.last_heartbeat) > timeout then
+        -- Election timeout - start election
+        become_candidate()
+        -- In real Raft, we'd request votes from other nodes here
+        -- For demo, we'll simulate winning with majority
+        state.votes_received = 3  -- Simulate getting majority
+        if state.votes_received > 1 then  -- Majority of 3 nodes
+            become_leader()
+        end
+    end
+end
+
+-- Heartbeat handling
+local function send_heartbeat()
+    if state.current_state == "leader" then
+        -- Leaders send heartbeats
+        -- In real Raft, this would go to all followers
+        print(string.format("[Term %d] ❤️  Leader heartbeat", state.current_term))
+    end
+end
+
+local function receive_heartbeat(from_id, term)
+    if term >= state.current_term then
+        state.last_heartbeat = socket.gettime()
+        if term > state.current_term then
+            become_follower(term)
+        end
+        state.leader_id = from_id
+    end
+end
+
+-- Simple HTTP server
+local function start_server()
+    local server = socket.bind("*", config.port)
+    server:settimeout(0.01)  -- Non-blocking
+    
+    print(string.format("═══════════════════════════════════════"))
+    print(string.format("  PolyRaft LuaJIT Consensus"))
+    print(string.format("  Port: %d", config.port))
+    print(string.format("═══════════════════════════════════════"))
+    print("")
+    print("✓ LuaJIT consensus ready!")
+    print(string.format("  State: %s", state.current_state))
+    print(string.format("  Term: %d", state.current_term))
+    
+    local last_heartbeat_time = socket.gettime()
+    
+    while true do
+        -- Check for incoming connections
+        local client = server:accept()
+        if client then
+            client:settimeout(1)
+            local request = client:receive("*l")
+            
+            if request then
+                -- Simple health check response
+                local response = json.encode({
+                    service = "polyraft-consensus",
+                    status = "healthy",
+                    state = state.current_state,
+                    term = state.current_term,
+                    leader = state.leader_id
+                })
+                
+                local http_response = string.format(
+                    "HTTP/1.1 200 OK\r\n" ..
+                    "Content-Type: application/json\r\n" ..
+                    "Access-Control-Allow-Origin: *\r\n" ..
+                    "Content-Length: %d\r\n\r\n%s",
+                    #response, response
+                )
+                
+                client:send(http_response)
+            end
+            client:close()
+        end
+        
+        -- Periodic tasks
+        local now = socket.gettime()
+        
+        -- Check election timeout
+        check_election_timeout()
+        
+        -- Send heartbeat if leader
+        if now - last_heartbeat_time > config.heartbeat_interval then
+            if state.current_state == "leader" then
+                send_heartbeat()
+            end
+            last_heartbeat_time = now
+        end
+        
+        -- Small sleep to prevent CPU spinning
+        socket.sleep(0.01)
+    end
+end
+
+-- Run
+print("Starting PolyRaft LuaJIT Consensus...")
+math.randomseed(os.time())
+start_server()
+
+echo "✅ LuaJIT consensus created!"
