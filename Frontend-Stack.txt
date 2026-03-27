@@ -1,0 +1,7 @@
+React (UI framework)
+├── Vite (build tool - blazing fast)
+├── TailwindCSS (styling)
+├── Chart.js (visualizations)
+└── Axios (API calls)
+
+Deploy to: Cloud Storage + CDN (super cheap, super fast)

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperpolyglot Stack</title>
+    
+    <style>
+        :root {
+            --ai-blue: #00d4ff;
+            --drama-purple: #8a2be2;
+            --stage-black: #0a0a0a;
+            --spotlight: #00ffcc;
+            --neon-glow: 0 0 20px var(--ai-blue);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, var(--stage-black) 0%, #1a0b2e 100%);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        .header {
+            text-align: center;
+            padding: 50px 20px;
+            background: rgba(138, 43, 226, 0.2);
+            border-radius: 25px;
+            margin-bottom: 40px;
+            border: 2px solid var(--ai-blue);
+            box-shadow: var(--neon-glow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+            animation: shimmer 3s infinite linear;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(0deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(360deg); }
+        }
+        
+        .main-title {
+            font-size: 3.5em;
+            margin: 0;
+            background: linear-gradient(45deg, var(--ai-blue), var(--spotlight));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .tagline {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin: 15px 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--ai-blue);
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.2);
+        }
+        
+        .card h2 {
+            color: var(--ai-blue);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .badge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid var(--ai-blue);
+            transition: transform 0.2s;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.healthy {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid var(--ai-blue);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--spotlight);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+        
+        .input-group { display: flex; gap: 15px; margin-bottom: 15px; }
+        
+        button {
+            background: linear-gradient(45deg, var(--ai-blue), var(--spotlight));
+            color: black;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+        
+        .result {
+            background: rgba(0, 255, 204, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            color: var(--spotlight);
+            border: 1px solid var(--spotlight);
+            font-size: 1.1em;
+        }
+        
+        .prime-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(0, 212, 255, 0.05);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        
+        .prime-number {
+            color: var(--ai-blue);
+            padding: 3px 8px;
+            background: rgba(0, 212, 255, 0.2);
+            border-radius: 5px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1 class="main-title">🚀 Hyperpolyglot Stack</h1>
+            <p class="tagline">Production polyglot microservices: Zig • Python • Go • Julia • LuaJIT</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>⚡ Service Health</h2>
+            <div class="badge-grid" id="health-badges">
+                <p>Checking services...</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🔢 Fibonacci Calculator <small>(Python → Zig)</small></h2>
+            <div class="input-group">
+                <input type="number" id="fib-input" value="20" placeholder="Enter n">
+                <button onclick="calculateFib()">Calculate</button>
+            </div>
+            <div id="fib-result"></div>
+        </div>
+
+        <div class="card">
+            <h2>🔍 Prime Number Finder <small>(Python → Zig)</small></h2>
+            <div class="input-group">
+                <input type="number" id="prime-start" value="1" placeholder="Start">
+                <input type="number" id="prime-end" value="100" placeholder="End">
+            </div>
+            <button onclick="findPrimes()" style="width: 100%">Find Primes</button>
+            <div id="prime-result"></div>
+        </div>
+
+        <div class="footer">
+            <p>Built with Zig • Python • Go • Julia • LuaJIT</p>
+            <p>Deployed on GCP Cloud Run</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://go-gateway-x6vvbvhpsq-uc.a.run.app';
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                const data = await res.json();
+                
+                const html = `
+                    <div class="badge">
+                        <div class="status-dot ${data.backends?.python?.healthy ? 'healthy' : ''}"></div>
+                        <span>Python + Zig</span>
+                        <span>${data.backends?.python?.healthy ? '✓' : '✗'}</span>
+                    </div>
+                    <div class="badge">
+                        <div class="status-dot ${data.backends?.julia?.healthy ? 'healthy' : ''}"></div>
+                        <span>Julia Analytics</span>
+                        <span>${data.backends?.julia?.healthy ? '✓' : '✗'}</span>
+                    </div>
+                    <div class="badge">
+                        <div class="status-dot ${data.backends?.lua?.healthy ? 'healthy' : ''}"></div>
+                        <span>LuaJIT Scripting</span>
+                        <span>${data.backends?.lua?.healthy ? '✓' : '✗'}</span>
+                    </div>
+                `;
+                
+                document.getElementById('health-badges').innerHTML = html;
+            } catch (e) {
+                console.error('Health check failed:', e);
+            }
+        }
+
+        async function calculateFib() {
+            const n = document.getElementById('fib-input').value;
+            try {
+                const res = await fetch(`${API_URL}/api/fibonacci/${n}`);
+                const data = await res.json();
+                document.getElementById('fib-result').innerHTML = 
+                    `<div class="result">fibonacci(${data.n}) = ${data.result?.toLocaleString()}</div>`;
+            } catch (e) {
+                console.error('Fib failed:', e);
+            }
+        }
+
+        async function findPrimes() {
+            const start = parseInt(document.getElementById('prime-start').value);
+            const end = parseInt(document.getElementById('prime-end').value);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/primes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start, end })
+                });
+                const data = await res.json();
+                
+                const primes = data.primes.slice(0, 100).map(p => 
+                    `<span class="prime-number">${p}</span>`
+                ).join('');
+                
+                document.getElementById('prime-result').innerHTML = `
+                    <div class="result">Found ${data.count} primes</div>
+                    <div class="prime-list">${primes}</div>
+                `;
+            } catch (e) {
+                console.error('Primes failed:', e);
+            }
+        }
+
+        // Check health on load
+        checkHealth();
+    </script>
+</body>
+</html>
