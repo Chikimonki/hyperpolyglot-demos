@@ -1,5 +1,7 @@
 # 🚀 Hyperpolyglot Cloud Architecture
 
+Video: https://youtu.be/wEEUiQmRg8g
+
 > **Production-grade polyglot microservices demonstrating language-specific optimization patterns on Google Cloud Platform**
 
 [![Cloud Run](https://img.shields.io/badge/GCP-Cloud%20Run-4285F4?logo=google-cloud)](https://cloud.google.com/run)
