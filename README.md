@@ -1,5 +1,10 @@
 # 🚀 Hyperpolyglot Cloud Architecture
-
+HYPERPOLYGLOT LIVE:
+  Gateway:  https://go-gateway-x6vvbvhpsq-uc.a.run.app
+  Python:   https://python-compute-x6vvbvhpsq-uc.a.run.app
+  Julia:    https://julia-analytics-x6vvbvhpsq-uc.a.run.app
+  LuaJIT:   https://luajit-scripting-x6vvbvhpsq-uc.a.run.app
+  Frontend: https://storage.googleapis.com/groq-chat-api-hyperpolyglot-ui/simple.html
 Video: https://youtu.be/wEEUiQmRg8g
 
 > **Production-grade polyglot microservices demonstrating language-specific optimization patterns on Google Cloud Platform**
