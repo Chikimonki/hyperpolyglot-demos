@@ -1,9 +1,13 @@
--- PolyRaft LuaJIT Consensus (Simplified)
+-- PolyRaft LuaJIT Consensus - Cloud Run Compatible
 local socket = require("socket")
+
+-- Get port from environment (Cloud Run requirement)
+local port_env = os.getenv("PORT")
+local port = port_env and tonumber(port_env) or 5003
 
 local config = {
     node_id = "luajit_consensus",
-    port = 5003,
+    port = port,
     heartbeat_interval = 0.1,
     election_timeout = 0.5,
 }
@@ -32,7 +36,6 @@ local function check_election_timeout()
     if state.current_state ~= "leader" and 
        (now - state.last_heartbeat) > config.election_timeout then
         become_candidate()
-        -- Simulate winning election
         become_leader()
         state.last_heartbeat = now
     end
@@ -45,7 +48,6 @@ local function send_heartbeat()
 end
 
 local function simple_json(data)
-    -- Very simple JSON encoder
     local result = "{"
     local first = true
     for k, v in pairs(data) do
@@ -65,7 +67,6 @@ local function start_server()
     print("  Port: " .. config.port)
     print("═══════════════════════════════════════")
     print("\nLuaJIT consensus ready!")
-    print("  State: " .. state.current_state)
     
     local last_heartbeat = socket.gettime()
     
@@ -80,7 +81,8 @@ local function start_server()
                     status = "healthy",
                     state = state.current_state,
                     term = state.current_term,
-                    leader = state.leader_id or "none"
+                    leader = state.leader_id or "none",
+                    port = config.port
                 })
                 local http = string.format(
                     "HTTP/1.1 200 OK\r\n" ..
